@@ -1,7 +1,7 @@
 /**
 * Author: Wei Shi
-* Assignment: Rise of the AI
-* Date due: 2025-04-05, 11:59pm
+* Assignment: A Way Out
+* Date due: 04.25, 2:00pm
 * I pledge that I have completed this assignment without
 * collaborating with anyone else, in conformance with the
 * NYU School of Engineering Policies and Procedures on
@@ -80,14 +80,24 @@ SDL_Window* g_display_window;
 ShaderProgram g_shader_program;
 glm::mat4 g_view_matrix, g_projection_matrix;
 
+Mix_Chunk* g_rock_break_sfx = nullptr;
+
 float g_previous_ticks = 0.0f;
 float g_accumulator = 0.0f;
+
+float g_elapsed_time = 0.0f;
 
 bool g_is_colliding_bottom = false;
 bool g_game_paused = false;
 
-int g_lives = 3;
+bool  g_bright_mode  = false;
+float g_bright_timer = 0.0f;
+int time_bright = 4;
 
+GLuint fontTexture = 0;
+
+int g_lives = 3;
+bool wantRockShake = false;
 
 AppStatus g_app_status = RUNNING;
 
@@ -107,8 +117,9 @@ void switch_to_scene(Scene *scene)
 
 void initialise()
 {
+
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-    g_display_window = SDL_CreateWindow("Hello, Special Effects!",
+    g_display_window = SDL_CreateWindow("Hello, FIND A WAY OUT!",
                                       SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                       WINDOW_WIDTH, WINDOW_HEIGHT,
                                       SDL_WINDOW_OPENGL);
@@ -119,7 +130,7 @@ void initialise()
 #ifdef _WINDOWS
     glewInit();
 #endif
-    
+    fontTexture = Utility::load_texture("assets/font1.png");
     glViewport(VIEWPORT_X, VIEWPORT_Y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
     
     g_shader_program.load(V_SHADER_PATH, F_SHADER_PATH);
@@ -132,9 +143,12 @@ void initialise()
     
     glUseProgram(g_shader_program.get_program_id());
     
-    glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
+    glClearColor(0, 0, 0, BG_OPACITY);
     
-    // enable blending
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
+
+    g_rock_break_sfx = Mix_LoadWAV("assets/rock_breaking.flac");
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
@@ -153,11 +167,10 @@ void initialise()
     switch_to_scene(g_levels[0]);
     
     g_effects = new Effects(g_projection_matrix, g_view_matrix);
-    g_effects->start(SHRINK, 4.0f);
 }
 
 void process_input() {
-    // Only set movement if a player exists in the current scene.
+
     if (g_current_scene->get_state().player) {
         g_current_scene->get_state().player->set_movement(glm::vec3(0.0f));
     }
@@ -204,10 +217,22 @@ void process_input() {
             g_current_scene->get_state().player->move_left();
         else if (key_state[SDL_SCANCODE_RIGHT])
             g_current_scene->get_state().player->move_right();
+        else if (key_state[SDL_SCANCODE_UP])
+            g_current_scene->get_state().player->move_up();
+        else if (key_state[SDL_SCANCODE_DOWN])
+            g_current_scene->get_state().player->move_down();
 
         if (glm::length(g_current_scene->get_state().player->get_movement()) > 1.0f)
             g_current_scene->get_state().player->normalise_movement();
     }
+    if (key_state[SDL_SCANCODE_C] && !g_bright_mode && time_bright > 0) {
+        g_bright_mode  = true;
+        g_bright_timer = 2.0f;      // 2 seconds of full brightness
+        Mix_PlayChannel(-1, g_rock_break_sfx, 0);
+        wantRockShake = true;
+        time_bright--;
+    }
+
 }
 
 
@@ -217,6 +242,28 @@ void update()
     float delta_time = ticks - g_previous_ticks;
     g_previous_ticks = ticks;
     
+    g_effects->update(delta_time);
+    if (wantRockShake) {
+        g_effects->start(SHAKE, 1.0f);
+        wantRockShake = false;
+    }
+    
+    if (g_bright_mode) {
+        g_bright_timer -= delta_time;
+        if (g_bright_timer <= 0.0f) {
+            g_bright_mode = false;
+        }
+    }
+    g_elapsed_time += FIXED_TIMESTEP;
+
+
+    if ((g_current_scene == g_levelA || g_current_scene == g_levelB || g_current_scene == g_levelC)
+        && g_elapsed_time >= 300.0f)
+    {
+        switch_to_scene(g_lose);
+    }
+    
+    
     delta_time += g_accumulator;
     
     if (delta_time < FIXED_TIMESTEP)
@@ -224,6 +271,8 @@ void update()
         g_accumulator = delta_time;
         return;
     }
+    
+
     if (g_game_paused) return;
     while (delta_time >= FIXED_TIMESTEP) {
         g_current_scene->update(FIXED_TIMESTEP);
@@ -238,7 +287,6 @@ void update()
             g_effects->start(SHAKE, 1.0f);
             Mix_PlayChannel(-1, g_current_scene->get_state().land_sfx, 0);
         }
-        
         if (g_current_scene->get_state().player) {
             g_is_colliding_bottom = g_current_scene->get_state().player->get_collided_bottom();
         }
@@ -248,7 +296,6 @@ void update()
     
     g_accumulator = delta_time;
     
-    // Prevent the camera from showing anything outside of the "edge" of the level
     g_view_matrix = glm::mat4(1.0f);
     
     if (g_current_scene->get_state().player) {
@@ -260,15 +307,15 @@ void update()
         }
     }
     
-    // Only check these transitions if the player exists.
+
     if (g_current_scene->get_state().player) {
-        if (g_current_scene == g_levelA && g_current_scene->get_state().player->get_position().y < -10.0f)
+        if (g_current_scene == g_levelA && g_current_scene->get_state().player->get_position().y < -20.0f)
             switch_to_scene(g_levelB);
     
-        if (g_current_scene == g_levelB && g_current_scene->get_state().player->get_position().y < -10.0f)
+        if (g_current_scene == g_levelB && g_current_scene->get_state().player->get_position().y < -20.0f)
             switch_to_scene(g_levelC);
         
-        if (g_current_scene == g_levelC && g_current_scene->get_state().player->get_position().y < -10.0f)
+        if (g_current_scene == g_levelC && g_current_scene->get_state().player->get_position().y < -20.0f)
             switch_to_scene(g_win);
         
     }
@@ -280,21 +327,53 @@ void update()
 
 void render()
 {
-    g_shader_program.set_view_matrix(g_view_matrix);
-       
     glClear(GL_COLOR_BUFFER_BIT);
-       
-    // ————— RENDERING THE SCENE (i.e. map, character, enemies...) ————— //
-    GLuint font_texture = Utility::load_texture("assets/font1.png");
-        
-    std::string livesText = "Lives: " + std::to_string(g_lives);
     
-    Utility::draw_text(&g_shader_program, font_texture, livesText, 0.25f, -0.03f, glm::vec3(-4.5f, 3.0f, 0.0f));
-    
-    g_current_scene->render(&g_shader_program);
-    g_effects->render();
+    glUseProgram(g_shader_program.get_program_id());
+        g_shader_program.set_view_matrix(g_view_matrix);
 
-    SDL_GL_SwapWindow(g_display_window);
+    bool hasPlayer = (g_current_scene->get_state().player != nullptr);
+
+       if (!hasPlayer || g_bright_mode) {
+           g_shader_program.set_isC(0);
+       } else {
+           g_shader_program.set_isC(1);
+
+           glm::vec3 pos = g_current_scene->get_state().player->get_position();
+           g_shader_program.set_light_position_matrix(pos);
+       }
+    g_effects->start(SHAKE, 1.0f);
+        g_effects->render();
+ 
+        g_current_scene->render(&g_shader_program);
+       
+    
+    std::string livesText = "Lives: " + std::to_string(g_lives);
+    Utility::draw_text(
+        &g_shader_program,
+        fontTexture,
+        livesText,
+        0.3f,
+        -0.1f,
+        glm::vec3(-4.5f, 3.5f, 0.0f)
+    );
+
+    float remaining = std::max(0.0f, 300.0f - g_elapsed_time);
+    int m = int(remaining) / 60, s = int(remaining) % 60;
+    std::ostringstream ss;
+    ss << "Time: " << m << ":" << (s < 10 ? "0" : "") << s;
+    Utility::draw_text(
+        &g_shader_program,
+        fontTexture,
+        ss.str(),
+        0.3f,
+        -0.1f,
+        glm::vec3(2.5f, 3.5f, 0.0f)
+    );
+    
+    
+        SDL_GL_SwapWindow(g_display_window);
+       
 }
 
 void shutdown()

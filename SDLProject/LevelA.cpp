@@ -1,7 +1,7 @@
 /**
 * Author: Wei Shi
-* Assignment: Rise of the AI
-* Date due: 2025-04-05, 11:59pm
+* Assignment: A Way Out
+* Date due: 04.25, 2:00pm
 * I pledge that I have completed this assignment without
 * collaborating with anyone else, in conformance with the
 * NYU School of Engineering Policies and Procedures on
@@ -9,26 +9,35 @@
 **/
 #include "LevelA.h"
 #include "Utility.h"
+#include "Entity.h"
 
-#define LEVEL_WIDTH 14
-#define LEVEL_HEIGHT 8
+#define LEVEL_WIDTH  30
+#define LEVEL_HEIGHT 18
 #define ENEMY_COUNT 2
 
 constexpr char SPRITESHEET_FILEPATH[] = "assets/move.png",
-           ENEMY_FILEPATH[]       = "assets/enemy.png";
+           ENEMY_FILEPATH[]       = "assets/wraith.png";
 
 extern int g_lives;
 
 unsigned int LEVELA_DATA[] =
 {
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-    3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2,
-    3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    3, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3,
+    3, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 3,
+    3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 3,
+    3, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 3,
+    3, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 3,
+    3, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 3,
+    3, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0,
+    3, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 3,
+    0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 3,
+    0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 3,
+    3, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 3,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 3,
+    3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 };
 
 LevelA::~LevelA()
@@ -47,7 +56,7 @@ void LevelA::initialise()
     m_game_state.next_scene_id = -1;
 
     GLuint map_texture_id = Utility::load_texture("assets/tile.png");
-    m_game_state.map = new Map(LEVEL_WIDTH, LEVEL_HEIGHT, LEVELA_DATA, map_texture_id, 1.0f, 4, 1);
+    m_game_state.map = new Map(LEVEL_WIDTH, LEVEL_HEIGHT, LEVELA_DATA, map_texture_id, 1.0f, 1, 1);
 
     int player_walking_animation[4][4] =
     {
@@ -61,6 +70,8 @@ void LevelA::initialise()
 
     GLuint player_texture_id = Utility::load_texture(SPRITESHEET_FILEPATH);
 
+
+
     m_game_state.player = new Entity(
         player_texture_id,
         5.0f,
@@ -72,12 +83,12 @@ void LevelA::initialise()
         0,
         4,
         4,
-        1.0f,
-        1.0f,
+        0.7f,
+        0.7f,
         PLAYER
     );
 
-    m_game_state.player->set_position(glm::vec3(5.0f, 0.0f, 0.0f));
+    m_game_state.player->set_position(glm::vec3(5.0f, -1.0f, 0.0f));
     m_game_state.player->set_jumping_power(5.0f);
 
     // ENEMIES
@@ -97,7 +108,7 @@ void LevelA::initialise()
 
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
 
-    m_game_state.bgm = Mix_LoadMUS("assets/bgm.wav");
+    m_game_state.bgm = Mix_LoadMUS("assets/bgm2.wav");
     Mix_PlayMusic(m_game_state.bgm, -1);
     Mix_VolumeMusic(20);
 
@@ -123,20 +134,28 @@ void LevelA::update(float delta_time)
             m_game_state.next_scene_id = -1;
             return;
         } else {
-            m_game_state.player->set_position(glm::vec3(5.0f, 0.0f, 0.0f));  // respawn
+            m_game_state.player->set_position(glm::vec3(5.0f, -1.0f, 0.0f));  // respawn
         }
     }
 
-
-    if (m_game_state.player->get_position().y < -10.0f) m_game_state.next_scene_id = 1;
+    //if (m_game_state.player->get_position().y < -10.0f) m_game_state.next_scene_id = 1;
 }
 
-void LevelA::render(ShaderProgram *program)
-{
+void LevelA::render(ShaderProgram *program) {
+    // 1. Compute camera/view matrix
+    glm::vec3 playerPos = m_game_state.player->get_position();  
+    glm::mat4 viewMatrix = glm::mat4(1.0f);
+    viewMatrix = glm::translate(viewMatrix, glm::vec3(-playerPos.x, -playerPos.y, 0.0f));
+
+    // 2. Upload view matrix to shader
+    program->set_view_matrix(viewMatrix);
+
+    // 3. Render the scene
+    
     m_game_state.map->render(program);
     m_game_state.player->render(program);
-
-    for (int i = 0; i < ENEMY_COUNT; i++) {
+    for (int i = 0; i < ENEMY_COUNT; ++i) {
         m_game_state.enemies[i].render(program);
     }
 }
+

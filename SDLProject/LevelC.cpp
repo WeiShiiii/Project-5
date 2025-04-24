@@ -1,7 +1,7 @@
 /**
 * Author: Wei Shi
-* Assignment: Rise of the AI
-* Date due: 2025-04-05, 11:59pm
+* Assignment: A Way Out
+* Date due: 04.25, 2:00pm
 * I pledge that I have completed this assignment without
 * collaborating with anyone else, in conformance with the
 * NYU School of Engineering Policies and Procedures on
@@ -11,26 +11,35 @@
 #include "LevelC.h"
 #include "Utility.h"
 
-#define LEVEL_WIDTH 20
-#define LEVEL_HEIGHT 10
+#define LEVEL_WIDTH 30
+#define LEVEL_HEIGHT 18
 #define ENEMY_COUNT 2
 
 extern int g_lives;
 
 unsigned int LEVELC_DATA[] = {
-    3, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,
-    3, 0,0,0,0,0, 1,1,1,1, 0,0,0,0,0,0,0,0,0,3,
-    3, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,
-    3, 0,0,0,0,0,0,0,0,0,0,0, 1,1,1,1, 0,0,0,3,
-    3, 0,0,0, 1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0,3,
-    3, 1,1,1, 0,0,0,0,0,0,0,0, 1,1,1, 0,0,0,0,3,
-    3, 0,0,0,0, 1,1,1,1,1,1,1,1,1,1, 0,0,0,0,3,
-    3, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,
-    3, 0,0,0,0,0,0,0, 1,1,1,1, 0,0,0,0,0,0,0,3,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+        3, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3,
+        3, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 3,
+        3, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 3,
+        3, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 3,
+        3, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 3,
+        3, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 3,
+        3, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3,
+        3, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 3,
+        3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 3,
+        3, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 3,
+        3, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3,
+        3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0,
+        3, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 3,
+        3, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 3,
+        3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 2,
+        3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
 };
 
 constexpr char SPRITESHEET_FILEPATH[] = "assets/move.png";
-constexpr char ENEMY_FILEPATH[] = "assets/enemy.png";
+constexpr char ENEMY_FILEPATH[] = "assets/wraith.png";
 
 LevelC::~LevelC()
 {
@@ -47,7 +56,7 @@ void LevelC::initialise()
 {
     m_game_state.next_scene_id = -1;
 
-    GLuint map_texture_id = Utility::load_texture("assets/tile.png");
+    GLuint map_texture_id = Utility::load_texture("assets/wall.png");
     m_game_state.map = new Map(LEVEL_WIDTH, LEVEL_HEIGHT, LEVELC_DATA, map_texture_id, 1.0f, 4, 1);
 
     int player_anim[4][4] = {
@@ -71,8 +80,8 @@ void LevelC::initialise()
         0,
         4,
         4,
-        1.0f,
-        1.0f,
+        0.7f,
+        0.7f,
         PLAYER
     );
     m_game_state.player->set_position(glm::vec3(3.0f, 0.0f, 0.0f));
@@ -95,7 +104,7 @@ void LevelC::initialise()
         1.0f,
         ENEMY, GUARD, IDLE
     );
-    m_game_state.enemies[0].set_position(glm::vec3(5.0f, -0.5f, 0.0f));
+    m_game_state.enemies[0].set_position(glm::vec3(8.0f, -5.0f, 0.0f));
     m_game_state.enemies[0].set_movement(glm::vec3(0.0f));
     m_game_state.enemies[0].set_acceleration(glm::vec3(0.0f, -9.81f, 0.0f));
     m_game_state.enemies[0].set_walking(enemy_anim);
@@ -108,13 +117,13 @@ void LevelC::initialise()
         1.0f,
         ENEMY, FLYER, IDLE
     );
-    m_game_state.enemies[1].set_position(glm::vec3(12.0f, -2.0f, 0.0f));
+    m_game_state.enemies[1].set_position(glm::vec3(1.0f, -1.0f, 0.0f));
     m_game_state.enemies[1].set_acceleration(glm::vec3(0.0f, 0.0f, 0.0f));
     m_game_state.enemies[1].set_walking(enemy_anim);
     
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
 
-    m_game_state.bgm = Mix_LoadMUS("assets/bgm.wav");
+    m_game_state.bgm = Mix_LoadMUS("assets/bgm2.wav");
     Mix_PlayMusic(m_game_state.bgm, -1);
     Mix_VolumeMusic(20);
 
@@ -139,13 +148,18 @@ void LevelC::update(float delta_time)
             m_game_state.next_scene_id = -1;
             return;
         } else {
-            m_game_state.player->set_position(glm::vec3(5.0f, 0.0f, 0.0f));
+            m_game_state.player->set_position(glm::vec3(10.0f, -2.0f, 0.0f));
         }
     }
 }
 
 void LevelC::render(ShaderProgram* program)
 {
+    glm::vec3 playerPos = m_game_state.player->get_position();
+    glm::mat4 viewMatrix = glm::mat4(1.0f);
+    viewMatrix = glm::translate(viewMatrix, glm::vec3(-playerPos.x, -playerPos.y, 0.0f));
+
+    program->set_view_matrix(viewMatrix);
     m_game_state.map->render(program);
     m_game_state.player->render(program);
 

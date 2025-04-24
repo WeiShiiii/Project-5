@@ -1,7 +1,7 @@
 /**
 * Author: Wei Shi
-* Assignment: Rise of the AI
-* Date due: 2025-04-05, 11:59pm
+* Assignment: A Way Out
+* Date due: 04.25, 2:00pm
 * I pledge that I have completed this assignment without
 * collaborating with anyone else, in conformance with the
 * NYU School of Engineering Policies and Procedures on
@@ -353,6 +353,7 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
     }
     
     m_velocity.x = m_movement.x * m_speed;
+    m_velocity.y = m_movement.y * m_speed;
     m_velocity += m_acceleration * delta_time;
     
     if (m_is_jumping)
@@ -372,6 +373,11 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
     
     m_model_matrix = glm::mat4(1.0f);
     m_model_matrix = glm::translate(m_model_matrix, m_position);
+    
+    m_model_matrix = glm::scale(
+      m_model_matrix,
+      glm::vec3(m_width, m_height, 1.0f)
+    );
 }
 
 

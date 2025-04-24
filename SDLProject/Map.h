@@ -17,6 +17,7 @@ class Map {
 private:
     int m_width;
     int m_height;
+
     
     // Here, the level_data is the numerical "drawing" of the map
     unsigned int *m_level_data;
